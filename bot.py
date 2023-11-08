@@ -1,29 +1,53 @@
-import telebot;
+import telebot as t;
 
-bot = telebot.TeleBot('6595393373:AAGeP42CJc4yqI4_mpxzP1PEkbVxxXVDLVY');
+bot = t.TeleBot('6595393373:AAGeP42CJc4yqI4_mpxzP1PEkbVxxXVDLVY');
 
-# @bot.message_handler(commands=['start'])
-# def handle_start(message):
-#     bot.send_message(message.from_user.id, 'Привет!')
-# @bot.message_handler(commands=['stop'])
-# def handle_stop(message):
-#     bot.send_message(message.from_user.id, 'Бот останавливается...')
-# # Выполнение завершающих операций
-# # Сохранение данных
-# # Закрытие соединений
-#     bot.stop()
-#     bot.polling(none_stop=True)
-#
+name = '';
+surname = '';
 
 
 @bot.message_handler(content_types=['text'])
-def get_text_messages(message):
-    if message.text == "Привет":
-        bot.send_message(message.from_user.id, "Юзера ответ")
-    elif message.text == "/help":
-        bot.send_message(message.from_user.id, "Напиши привет")
+def start(message):
+    if message.text == '/reg':
+        bot.send_message(message.from_user.id, "Как тебя зовут?");
+        bot.register_next_step_handler(message, get_name); #следующий шаг – функция get_name
     else:
-        bot.send_message(message.from_user.id, "Я тебя не понимаю. Напиши /help.")
+        bot.send_message(message.from_user.id, 'Напиши /reg');
 
+def get_name(message): #получаем фамилию
+    global name;
+    name = message.text;
+    bot.send_message(message.from_user.id, 'Какая у тебя фамилия?');
+    bot.register_next_step_handler(message, get_surname);
 
-bot.polling(none_stop=True, interval=0)
+def get_surname(message):
+    global surname;
+    surname = message.text;
+    bot.send_message(message.from_user.id,'Сколько тебе лет?');
+    bot.register_next_step_handler(message, get_age);
+
+def get_age(message):
+
+    global age;
+    age = 0;
+    while age == 0: #проверяем что возраст изменился
+        try:
+             age = int(message.text) #проверяем, что возраст введен корректно
+        except Exception:
+             bot.send_message(message.from_user.id, 'Цифрами, пожалуйста')
+    keyboard = t.types.InlineKeyboardMarkup(row_width=2) #наша клавиатура
+    key_yes = t.types.InlineKeyboardButton(text='Да', callback_data='yes'); #кнопка «Да»
+    keyboard.add(key_yes); #добавляем кнопку в клавиатуру
+    key_no= t.types.InlineKeyboardButton(text='Нет', callback_data='no');
+    keyboard.add(key_no);
+    question = 'Тебе '+str(age)+' лет, тебя зовут '+name+' '+surname+'?';
+    bot.send_message(message.from_user.id, text=question, reply_markup=keyboard)
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_worker(call):
+    if call.data == "yes": #call.data это callback_data, которую мы указали при объявлении кнопки
+        bot.send_message(call.message.chat.id, 'Запомню :)');
+    elif call.data == "no":
+         bot.send_message(call.message.chat.id, 'На "нет" и суда нет)');
+
+bot.polling(none_stop=True, interval=1)
